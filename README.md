@@ -20,6 +20,29 @@ go build -o dist/bin/forgekit ./cmd/forgekit
 
 发布产物由 GitHub Actions 在 tag 触发后构建并上传到 Releases（不发布工具镜像）。
 
+```bash
+VERSION=v0.1.0
+OS=linux
+ARCH=amd64
+BIN="forgekit_${OS}_${ARCH}"
+
+curl -fL -o "${BIN}" "https://github.com/ben-wangz/forgekit/releases/download/${VERSION}/${BIN}"
+curl -fL -o checksums.txt "https://github.com/ben-wangz/forgekit/releases/download/${VERSION}/checksums.txt"
+
+sha256sum --check checksums.txt --ignore-missing
+chmod +x "${BIN}"
+mv "${BIN}" /usr/local/bin/forgekit
+```
+
+如果网络无法直连 GitHub，可改用 `https://files.m.daocloud.io/github.com/...` 形式，例如：
+
+```bash
+curl -fL -o "${BIN}" "https://files.m.daocloud.io/github.com/ben-wangz/forgekit/releases/download/${VERSION}/${BIN}"
+curl -fL -o checksums.txt "https://files.m.daocloud.io/github.com/ben-wangz/forgekit/releases/download/${VERSION}/checksums.txt"
+```
+
+Windows 产物名为 `forgekit_windows_amd64.exe` / `forgekit_windows_arm64.exe`。
+
 ## CLI 结构
 
 ```text

@@ -16,6 +16,13 @@ curl -fL -o "$BIN" "https://github.com/ben-wangz/forgekit/releases/download/${VE
 curl -fL -o checksums.txt "https://github.com/ben-wangz/forgekit/releases/download/${VERSION}/checksums.txt"
 ```
 
+如果网络无法直连 GitHub，可改用 `https://files.m.daocloud.io/github.com/...`：
+
+```bash
+curl -fL -o "$BIN" "https://files.m.daocloud.io/github.com/ben-wangz/forgekit/releases/download/${VERSION}/${BIN}"
+curl -fL -o checksums.txt "https://files.m.daocloud.io/github.com/ben-wangz/forgekit/releases/download/${VERSION}/checksums.txt"
+```
+
 Windows 产物名称为 `forgekit_windows_amd64.exe` / `forgekit_windows_arm64.exe`。
 
 ## 2) 校验完整性
