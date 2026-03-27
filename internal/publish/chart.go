@@ -30,12 +30,14 @@ func cmdChartBuild(args []string, projectRoot string) error {
 		return err
 	}
 
-	chartVersion, err := versionManager.ChartGitVersion(chartYAML.Name)
+	publishVersion, err := resolveChartPublishVersion(versionManager, chartYAML.Name, cfg.Semver)
 	if err != nil {
-		return fmt.Errorf("failed to get chart git-version: %w", err)
+		return fmt.Errorf("failed to resolve chart publish version: %w", err)
 	}
 
-	printChartBuildInfo(cfg, chartYAML.Name, chartYAML.Version, chartVersion)
+	chartVersion := publishVersion.Value
+
+	printChartBuildInfo(cfg, chartYAML.Name, publishVersion.Mode, chartYAML.Version, chartVersion)
 
 	fmt.Println()
 	fmt.Println("Packaging chart...")
@@ -78,15 +80,16 @@ func readChartYAML(chartDir string) (*ChartYAML, error) {
 	return &chart, nil
 }
 
-func printChartBuildInfo(cfg *ChartConfig, chartName, baseVersion, fullVersion string) {
+func printChartBuildInfo(cfg *ChartConfig, chartName, versionMode, baseVersion, fullVersion string) {
 	fmt.Println("===========================================")
 	fmt.Println("Building Helm Chart")
 	fmt.Println("===========================================")
 	fmt.Printf("Project root: %s\n", cfg.ProjectRoot)
 	fmt.Printf("Chart dir: %s\n", cfg.ChartDir)
 	fmt.Printf("Chart name: %s\n", chartName)
+	fmt.Printf("Version mode: %s\n", versionMode)
 	fmt.Printf("Base version: %s\n", baseVersion)
-	fmt.Printf("Git version: %s\n", fullVersion)
+	fmt.Printf("Package version: %s\n", fullVersion)
 	if cfg.Push {
 		fmt.Println("Push: enabled")
 		fmt.Printf("Registry: %s/charts\n", cfg.ContainerRegistry)

@@ -25,15 +25,17 @@ func cmdContainerBuild(args []string, projectRoot string) error {
 		return err
 	}
 
-	imageTag, err := versionManager.ModuleGitVersion(cfg.Module)
+	publishVersion, err := resolveModulePublishVersion(versionManager, cfg.Module, cfg.Semver)
 	if err != nil {
-		return fmt.Errorf("failed to get git-version: %w", err)
+		return fmt.Errorf("failed to resolve publish version: %w", err)
 	}
+
+	imageTag := publishVersion.Value
 
 	localImage := fmt.Sprintf("%s:%s", cfg.ImageName, imageTag)
 	remoteImage := fmt.Sprintf("%s/%s:%s", cfg.ContainerRegistry, cfg.ImageName, imageTag)
 
-	printBuildInfo(cfg, imageTag, localImage, remoteImage)
+	printBuildInfo(cfg, publishVersion.Mode, imageTag, localImage, remoteImage)
 
 	fmt.Println()
 	fmt.Println("Building image...")
@@ -72,13 +74,14 @@ func cmdContainerBuild(args []string, projectRoot string) error {
 	return nil
 }
 
-func printBuildInfo(cfg *ContainerConfig, imageTag, localImage, remoteImage string) {
+func printBuildInfo(cfg *ContainerConfig, versionMode, imageTag, localImage, remoteImage string) {
 	fmt.Println("===========================================")
 	fmt.Println("Building Container Image")
 	fmt.Println("===========================================")
 	fmt.Printf("Project root: %s\n", cfg.ProjectRoot)
 	fmt.Printf("Container dir: %s\n", cfg.ContainerDir)
 	fmt.Printf("Build context: %s\n", cfg.Context)
+	fmt.Printf("Version mode: %s\n", versionMode)
 	fmt.Printf("Image: %s\n", localImage)
 	fmt.Printf("Tag: %s\n", imageTag)
 	if cfg.Push {

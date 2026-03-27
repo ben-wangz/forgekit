@@ -12,6 +12,7 @@ type ContainerConfig struct {
 	ContainerDir      string
 	Module            string
 	Push              bool
+	Semver            bool
 	LoadK3s           bool
 	Context           string
 	ImageName         string
@@ -59,6 +60,8 @@ func loadContainerConfig(args []string, projectRoot string) (*ContainerConfig, e
 			i++
 		case "--push":
 			cfg.Push = true
+		case "--semver":
+			cfg.Semver = true
 		case "--load-k3s":
 			cfg.LoadK3s = true
 		case "--context":
@@ -109,6 +112,7 @@ func loadContainerConfig(args []string, projectRoot string) (*ContainerConfig, e
 type ChartConfig struct {
 	ChartDir          string
 	Push              bool
+	Semver            bool
 	ContainerRegistry string
 	RegistryPlainHTTP bool
 	Username          string
@@ -143,6 +147,8 @@ func loadChartConfig(args []string, projectRoot string) (*ChartConfig, error) {
 			i++
 		case "--push":
 			cfg.Push = true
+		case "--semver":
+			cfg.Semver = true
 		default:
 			return nil, fmt.Errorf("unknown option: %s", args[i])
 		}

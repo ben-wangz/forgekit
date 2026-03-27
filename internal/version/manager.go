@@ -169,6 +169,10 @@ func (m *Manager) ChartGitVersion(chartName string) (string, error) {
 	return buildGitVersion(version, commitID, dirty), nil
 }
 
+func (m *Manager) GitDirty() (bool, error) {
+	return isGitDirty(m.ProjectRoot)
+}
+
 func loadVersionControlConfig(path string) (*versionControlConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

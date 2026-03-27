@@ -104,12 +104,25 @@ forgekit publish container build \
   --module catalog/ingest \
   --push
 
+# 使用语义化版本发布（不带 commit，要求仓库 clean）
+forgekit publish container build \
+  --container-dir catalog/ingest/container \
+  --module catalog/ingest \
+  --push \
+  --semver
+
 # 打包 chart
 forgekit publish chart build --chart-dir operator/chart
 
 # 打包并推送 chart
 forgekit publish chart build --chart-dir operator/chart --push
+
+# 使用语义化版本发布 chart（不带 commit，要求仓库 clean）
+forgekit publish chart build --chart-dir operator/chart --push --semver
 ```
+
+`publish` 默认使用 git-version（带 commit，dirty 时可能带 `-dirty`）；传 `--semver` 则改为 semver 版本（不带 commit）。
+当启用 `--semver` 且仓库 dirty 时，命令会报错退出。
 
 ## 配置与环境变量
 

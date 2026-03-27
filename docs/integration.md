@@ -62,4 +62,12 @@ export FORGEKIT_PROJECT_ROOT=/workspace/your-project
 /opt/forgekit/bin/forgekit --project-root "$REPO_ROOT" publish container build \
   --container-dir catalog/ingest/container \
   --module catalog/ingest
+
+# 如需发布不带 commit 的语义化版本，可加 --semver（要求仓库 clean）
+/opt/forgekit/bin/forgekit --project-root "$REPO_ROOT" publish chart build \
+  --chart-dir operator/chart \
+  --push \
+  --semver
 ```
+
+说明：`publish` 默认发布 git-version；仅在需要 semver 发布时传 `--semver`。
