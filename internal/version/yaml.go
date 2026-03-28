@@ -1,6 +1,7 @@
 package version
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
@@ -46,32 +47,14 @@ func updateYAMLValue(filePath, keyPath, value string) error {
 		return err
 	}
 
-	var content map[string]any
-	if err := yaml.Unmarshal(data, &content); err != nil {
-		return err
-	}
-
-	keys := strings.Split(keyPath, ".")
-	current := content
-
-	for i, key := range keys {
-		if i == len(keys)-1 {
-			current[key] = value
-			break
-		}
-
-		next, ok := current[key].(map[string]any)
-		if !ok {
-			next = make(map[string]any)
-			current[key] = next
-		}
-		current = next
-	}
-
-	output, err := yaml.Marshal(content)
+	patched, err := patchYAMLScalarValue(data, keyPath, value)
 	if err != nil {
-		return err
+		return fmt.Errorf("file=%s keyPath=%s: %w", filePath, keyPath, err)
 	}
 
-	return os.WriteFile(filePath, output, 0644)
+	if bytes.Equal(data, patched) {
+		return nil
+	}
+
+	return os.WriteFile(filePath, patched, 0644)
 }
