@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	versiontool "github.com/ben-wangz/forgekit/internal/version"
 )
@@ -30,18 +31,31 @@ func cmdContainerBuild(args []string, projectRoot string) error {
 		return fmt.Errorf("failed to resolve publish version: %w", err)
 	}
 
-	imageTag := publishVersion.Value
+	tags, warnings, err := resolvePublishTags(publishVersion.Value, cfg.Semver, cfg.Push, cfg.MultiTag)
+	if err != nil {
+		return err
+	}
 
-	localImage := fmt.Sprintf("%s:%s", cfg.ImageName, imageTag)
-	remoteImage := fmt.Sprintf("%s/%s:%s", cfg.ContainerRegistry, cfg.ImageName, imageTag)
+	for _, warning := range warnings {
+		fmt.Fprintln(os.Stderr, warning)
+	}
 
-	printBuildInfo(cfg, publishVersion.Mode, imageTag, localImage, remoteImage)
+	primaryTag := publishVersion.Value
+	localImage := fmt.Sprintf("%s:%s", cfg.ImageName, primaryTag)
+	remoteImages := makeRemoteImages(cfg, tags)
+
+	buildTags := []string{localImage}
+	if cfg.Push {
+		buildTags = append(buildTags, remoteImages...)
+	}
+
+	printBuildInfo(cfg, publishVersion.Mode, primaryTag, localImage, remoteImages, tags)
 
 	fmt.Println()
 	fmt.Println("Building image...")
 	fmt.Println()
 
-	if err := podmanBuild(cfg, localImage, containerfilePath); err != nil {
+	if err := podmanBuild(cfg, buildTags, containerfilePath); err != nil {
 		return fmt.Errorf("failed to build image: %w", err)
 	}
 
@@ -50,11 +64,10 @@ func cmdContainerBuild(args []string, projectRoot string) error {
 	fmt.Println("Build Complete")
 	fmt.Println("===========================================")
 	fmt.Printf("Image: %s\n", localImage)
-	fmt.Printf("Also tagged as: %s:latest\n", cfg.ImageName)
 	fmt.Println()
 
 	if cfg.Push {
-		if err := pushImage(cfg, localImage, remoteImage); err != nil {
+		if err := pushImages(cfg, tags, remoteImages); err != nil {
 			return err
 		}
 	}
@@ -65,7 +78,7 @@ func cmdContainerBuild(args []string, projectRoot string) error {
 			return fmt.Errorf("failed to get k3s registry address: %w", err)
 		}
 
-		k3sRemoteImage := fmt.Sprintf("%s/%s:%s", k3sRegistry, cfg.ImageName, imageTag)
+		k3sRemoteImage := fmt.Sprintf("%s/%s:%s", k3sRegistry, cfg.ImageName, primaryTag)
 		if err := loadToK3s(cfg, localImage, k3sRemoteImage); err != nil {
 			return fmt.Errorf("failed to load image to k3s: %w", err)
 		}
@@ -74,7 +87,7 @@ func cmdContainerBuild(args []string, projectRoot string) error {
 	return nil
 }
 
-func printBuildInfo(cfg *ContainerConfig, versionMode, imageTag, localImage, remoteImage string) {
+func printBuildInfo(cfg *ContainerConfig, versionMode, imageTag, localImage string, remoteImages []string, tags []string) {
 	fmt.Println("===========================================")
 	fmt.Println("Building Container Image")
 	fmt.Println("===========================================")
@@ -83,56 +96,85 @@ func printBuildInfo(cfg *ContainerConfig, versionMode, imageTag, localImage, rem
 	fmt.Printf("Build context: %s\n", cfg.Context)
 	fmt.Printf("Version mode: %s\n", versionMode)
 	fmt.Printf("Image: %s\n", localImage)
-	fmt.Printf("Tag: %s\n", imageTag)
+	fmt.Printf("Primary tag: %s\n", imageTag)
 	if cfg.Push {
 		fmt.Println("Push: enabled")
-		fmt.Printf("Remote: %s\n", remoteImage)
+		fmt.Printf("Push tags: %s\n", strings.Join(tags, ", "))
+		for _, image := range remoteImages {
+			fmt.Printf("Remote: %s\n", image)
+		}
 	}
 
-	if len(cfg.BuildArgs) == 0 {
+	if len(cfg.BuildArgs) > 0 {
+		keys := make([]string, 0, len(cfg.BuildArgs))
+		for key := range cfg.BuildArgs {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+
 		fmt.Println()
-		fmt.Println("No BUILD_ARG_* variables found")
-		return
+		for _, key := range keys {
+			fmt.Printf("Build arg: %s=%s\n", key, cfg.BuildArgs[key])
+		}
 	}
 
-	keys := make([]string, 0, len(cfg.BuildArgs))
-	for key := range cfg.BuildArgs {
-		keys = append(keys, key)
+	if len(cfg.LabelOrder) > 0 {
+		fmt.Println()
+		for _, key := range cfg.LabelOrder {
+			fmt.Printf("Label: %s=%s\n", key, cfg.Labels[key])
+		}
 	}
-	sort.Strings(keys)
 
-	fmt.Println()
-	for _, key := range keys {
-		fmt.Printf("Build arg: %s=%s\n", key, cfg.BuildArgs[key])
+	if len(cfg.BuildArgs) == 0 && len(cfg.LabelOrder) == 0 {
+		fmt.Println()
+		fmt.Println("No BUILD_ARG_* variables or --label values found")
 	}
 }
 
-func pushImage(cfg *ContainerConfig, localImage, remoteImage string) error {
+func makeRemoteImages(cfg *ContainerConfig, tags []string) []string {
+	images := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		images = append(images, fmt.Sprintf("%s/%s:%s", cfg.ContainerRegistry, cfg.ImageName, tag))
+	}
+	return images
+}
+
+func pushImages(cfg *ContainerConfig, tags []string, remoteImages []string) error {
+	if (cfg.RegistryUsername == "") != (cfg.RegistryPassword == "") {
+		return fmt.Errorf("CONTAINER_REGISTRY_USERNAME and CONTAINER_REGISTRY_PASSWORD must be set together")
+	}
+
 	fmt.Println("===========================================")
 	fmt.Println("Pushing Container Image")
 	fmt.Println("===========================================")
-	fmt.Printf("Remote image: %s\n", remoteImage)
 	fmt.Println()
 
-	if cfg.RegistryUsername != "" && cfg.RegistryPassword != "" {
+	loggedIn := false
+	if cfg.RegistryUsername != "" {
 		fmt.Println("Logging in to registry...")
 		if err := podmanLogin(cfg.ContainerRegistry, cfg.RegistryUsername, cfg.RegistryPassword, cfg.RegistryPlainHTTP); err != nil {
 			return fmt.Errorf("failed to login to registry: %w", err)
 		}
 		fmt.Println()
+		loggedIn = true
 	}
 
-	fmt.Println("Tagging image...")
-	if err := podmanTag(localImage, remoteImage); err != nil {
-		return fmt.Errorf("failed to tag image: %w", err)
+	pushedTags := make([]string, 0, len(remoteImages))
+	for i, remoteImage := range remoteImages {
+		fmt.Printf("Pushing image: %s\n", remoteImage)
+		if err := podmanPush(remoteImage, cfg.RegistryPlainHTTP); err != nil {
+			if loggedIn {
+				_ = podmanLogout(cfg.ContainerRegistry)
+			}
+			if len(pushedTags) > 0 {
+				return fmt.Errorf("failed to push image %s: %w (already pushed tags: %s)", remoteImage, err, strings.Join(pushedTags, ", "))
+			}
+			return fmt.Errorf("failed to push image %s: %w", remoteImage, err)
+		}
+		pushedTags = append(pushedTags, tags[i])
 	}
 
-	fmt.Println("Pushing image...")
-	if err := podmanPush(remoteImage, cfg.RegistryPlainHTTP); err != nil {
-		return fmt.Errorf("failed to push image: %w", err)
-	}
-
-	if cfg.RegistryUsername != "" && cfg.RegistryPassword != "" {
+	if loggedIn {
 		fmt.Println()
 		fmt.Println("Logging out from registry...")
 		if err := podmanLogout(cfg.ContainerRegistry); err != nil {
@@ -144,7 +186,10 @@ func pushImage(cfg *ContainerConfig, localImage, remoteImage string) error {
 	fmt.Println("===========================================")
 	fmt.Println("Push Complete")
 	fmt.Println("===========================================")
-	fmt.Printf("Image: %s\n", remoteImage)
+	fmt.Printf("Pushed tags: %d\n", len(remoteImages))
+	for _, image := range remoteImages {
+		fmt.Printf("Image: %s\n", image)
+	}
 	fmt.Println()
 
 	return nil

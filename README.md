@@ -104,6 +104,13 @@ forgekit publish container build \
   --module catalog/ingest \
   --push
 
+# 显式传入 OCI labels（可重复）
+forgekit publish container build \
+  --container-dir catalog/ingest/container \
+  --module catalog/ingest \
+  --label org.opencontainers.image.source=https://github.com/acme/demo \
+  --label org.opencontainers.image.revision=abc123
+
 # 使用语义化版本发布（不带 commit，要求仓库 clean）
 forgekit publish container build \
   --container-dir catalog/ingest/container \
@@ -111,10 +118,22 @@ forgekit publish container build \
   --push \
   --semver
 
+# 语义化版本多标签发布（latest, major, major.minor, full）
+forgekit publish container build \
+  --container-dir catalog/ingest/container \
+  --module catalog/ingest \
+  --push \
+  --semver \
+  --multi-tag
+
 # 打包 chart
 forgekit publish chart build --chart-dir operator/chart
 
 # 打包并推送 chart
+forgekit publish chart build --chart-dir operator/chart --push
+
+# 显式指定 chart registry（推荐，避免兼容回退 warning）
+CHART_REGISTRY=ghcr.io/acme/demo-charts \
 forgekit publish chart build --chart-dir operator/chart --push
 
 # 使用语义化版本发布 chart（不带 commit，要求仓库 clean）
@@ -123,6 +142,10 @@ forgekit publish chart build --chart-dir operator/chart --push --semver
 
 `publish` 默认使用 git-version（带 commit，dirty 时可能带 `-dirty`）；传 `--semver` 则改为 semver 版本（不带 commit）。
 当启用 `--semver` 且仓库 dirty 时，命令会报错退出。
+
+`--multi-tag` 仅支持与 `--semver --push` 一起使用；不支持自定义 `--tag` 参数。
+当 semver 为 `0.x.y` 或 prerelease（如 `1.2.3-alpha.1`）时，`--multi-tag` 会降级为单 tag 并输出 warning。
+当 semver 含 `+` build metadata（如 `1.2.3+build.1`）时，命令会报错退出（OCI tag 不支持 `+`）。
 
 ## 配置与环境变量
 
@@ -135,9 +158,13 @@ forgekit publish chart build --chart-dir operator/chart --push --semver
 - `IMAGE_NAME`：镜像名，默认 `astro-data/<module>`（`/` 转 `-`）
 - `CONTAINER_REGISTRY`：目标 registry，未设置时自动探测 k3s registry，失败回落 `localhost:5000`
 - `CONTAINER_REGISTRY_USERNAME` / `CONTAINER_REGISTRY_PASSWORD`：registry 认证
+- `CHART_REGISTRY`：chart 推送地址（不带 `oci://`，推荐显式设置）
+- `CHART_REGISTRY_USERNAME` / `CHART_REGISTRY_PASSWORD`：chart registry 认证（推荐显式设置）
 - `REGISTRY_PLAIN_HTTP`：是否使用 HTTP（`true/false`）
 - `BUILD_ARG_*`：透传给 `podman build --build-arg`
 - `KUBECONFIG`：k3s/cluster 访问配置路径
+
+未设置 `CHART_REGISTRY` 时会走兼容回退路径（基于 `CONTAINER_REGISTRY` 或自动探测）并输出 deprecation warning，后续版本可能移除。
 
 ## 项目独立说明
 

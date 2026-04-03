@@ -9,6 +9,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	deprecatedRegistryWarning   = "[WARN] DEPRECATED: chart registry is resolved via compatibility fallback path. Please set CHART_REGISTRY explicitly. This compatibility may be removed in the next release."
+	deprecatedCredentialWarning = "[WARN] DEPRECATED: chart credentials are resolved via compatibility fallback path. Please set CHART_REGISTRY_USERNAME and CHART_REGISTRY_PASSWORD explicitly. This compatibility may be removed in the next release."
+)
+
 type ChartYAML struct {
 	Name    string `yaml:"name"`
 	Version string `yaml:"version"`
@@ -18,6 +23,13 @@ func cmdChartBuild(args []string, projectRoot string) error {
 	cfg, err := loadChartConfig(args, projectRoot)
 	if err != nil {
 		return err
+	}
+
+	if cfg.RegistryFallbackDeprecated {
+		fmt.Fprintln(os.Stderr, deprecatedRegistryWarning)
+	}
+	if cfg.CredentialFallbackDeprecated {
+		fmt.Fprintln(os.Stderr, deprecatedCredentialWarning)
 	}
 
 	chartYAML, err := readChartYAML(cfg.ChartDir)
@@ -92,7 +104,7 @@ func printChartBuildInfo(cfg *ChartConfig, chartName, versionMode, baseVersion, 
 	fmt.Printf("Package version: %s\n", fullVersion)
 	if cfg.Push {
 		fmt.Println("Push: enabled")
-		fmt.Printf("Registry: %s/charts\n", cfg.ContainerRegistry)
+		fmt.Printf("Registry: %s\n", cfg.ChartRegistry)
 	}
 }
 
@@ -101,14 +113,14 @@ func pushChart(cfg *ChartConfig, chartPackage, chartName, chartVersion string) e
 	fmt.Println("Pushing Helm Chart")
 	fmt.Println("===========================================")
 
-	registryPath := fmt.Sprintf("%s/charts", cfg.ContainerRegistry)
-	chartRef := fmt.Sprintf("%s/%s:%s", cfg.ContainerRegistry, "charts/"+chartName, chartVersion)
+	registryPath := cfg.ChartRegistry
+	chartRef := fmt.Sprintf("%s/%s:%s", cfg.ChartRegistry, chartName, chartVersion)
 	fmt.Printf("Chart reference: %s\n", chartRef)
 	fmt.Println()
 
 	if cfg.Username != "" && cfg.Password != "" {
 		fmt.Println("Logging in to registry...")
-		if err := helmRegistryLogin(cfg.ContainerRegistry, cfg.Username, cfg.Password, cfg.RegistryPlainHTTP); err != nil {
+		if err := helmRegistryLogin(cfg.ChartRegistryHost, cfg.Username, cfg.Password, cfg.RegistryPlainHTTP); err != nil {
 			return fmt.Errorf("failed to login to registry: %w", err)
 		}
 		fmt.Println()
@@ -122,7 +134,7 @@ func pushChart(cfg *ChartConfig, chartPackage, chartName, chartVersion string) e
 	if cfg.Username != "" && cfg.Password != "" {
 		fmt.Println()
 		fmt.Println("Logging out from registry...")
-		if err := helmRegistryLogout(cfg.ContainerRegistry); err != nil {
+		if err := helmRegistryLogout(cfg.ChartRegistryHost); err != nil {
 			return fmt.Errorf("failed to logout from registry: %w", err)
 		}
 	}

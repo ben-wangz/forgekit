@@ -8,12 +8,14 @@ import (
 	"strings"
 )
 
-func podmanBuild(cfg *ContainerConfig, imageTag string, containerfilePath string) error {
+func podmanBuild(cfg *ContainerConfig, imageTags []string, containerfilePath string) error {
 	args := []string{
 		"build",
-		"-t", imageTag,
-		"-t", fmt.Sprintf("%s:latest", cfg.ImageName),
 		"-f", containerfilePath,
+	}
+
+	for _, imageTag := range imageTags {
+		args = append(args, "-t", imageTag)
 	}
 
 	keys := make([]string, 0, len(cfg.BuildArgs))
@@ -23,6 +25,10 @@ func podmanBuild(cfg *ContainerConfig, imageTag string, containerfilePath string
 	sort.Strings(keys)
 	for _, key := range keys {
 		args = append(args, "--build-arg", fmt.Sprintf("%s=%s", key, cfg.BuildArgs[key]))
+	}
+
+	for _, key := range cfg.LabelOrder {
+		args = append(args, "--label", fmt.Sprintf("%s=%s", key, cfg.Labels[key]))
 	}
 
 	args = append(args, cfg.Context)

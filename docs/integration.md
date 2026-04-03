@@ -61,13 +61,28 @@ export FORGEKIT_PROJECT_ROOT=/workspace/your-project
 /opt/forgekit/bin/forgekit --project-root "$REPO_ROOT" version get
 /opt/forgekit/bin/forgekit --project-root "$REPO_ROOT" publish container build \
   --container-dir catalog/ingest/container \
-  --module catalog/ingest
+  --module catalog/ingest \
+  --push \
+  --label org.opencontainers.image.source="https://github.com/acme/demo" \
+  --label org.opencontainers.image.revision="$GIT_SHA"
 
-# 如需发布不带 commit 的语义化版本，可加 --semver（要求仓库 clean）
+# 如需语义化版本多标签发布（latest/major/major.minor/full）
+/opt/forgekit/bin/forgekit --project-root "$REPO_ROOT" publish container build \
+  --container-dir catalog/ingest/container \
+  --module catalog/ingest \
+  --push \
+  --semver \
+  --multi-tag
+
+# chart 发布建议显式设置 CHART_REGISTRY 与 chart 凭据
+CHART_REGISTRY="ghcr.io/acme/demo-charts" \
+CHART_REGISTRY_USERNAME="$GITHUB_ACTOR" \
+CHART_REGISTRY_PASSWORD="$GITHUB_TOKEN" \
 /opt/forgekit/bin/forgekit --project-root "$REPO_ROOT" publish chart build \
   --chart-dir operator/chart \
   --push \
   --semver
 ```
 
-说明：`publish` 默认发布 git-version；仅在需要 semver 发布时传 `--semver`。
+说明：`publish` 默认发布 git-version；仅在需要 semver 发布时传 `--semver`。`--multi-tag` 仅支持 `--semver --push`。
+另外，`CHART_REGISTRY` 不要带 `oci://` 前缀（命令内部会自动拼接）。
