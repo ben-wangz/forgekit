@@ -29,7 +29,7 @@ func helmPackage(chartDir, chartVersion string) (string, error) {
 	return "", fmt.Errorf("failed to parse helm package output")
 }
 
-func helmPush(chartPackage, registry string, insecure bool) error {
+func helmPush(chartPackage, registry string, insecure bool) (string, error) {
 	ociURL := fmt.Sprintf("oci://%s", registry)
 	args := []string{"push", chartPackage, ociURL}
 	if insecure {
@@ -37,9 +37,20 @@ func helmPush(chartPackage, registry string, insecure bool) error {
 	}
 
 	cmd := exec.Command("helm", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	output, err := cmd.CombinedOutput()
+	if len(output) > 0 {
+		fmt.Print(string(output))
+	}
+	if err != nil {
+		return "", fmt.Errorf("helm push failed: %w", err)
+	}
+
+	digest, parseErr := parseHelmPushDigest(string(output))
+	if parseErr != nil {
+		return "", parseErr
+	}
+
+	return digest, nil
 }
 
 func helmRegistryLogin(registry, username, password string, insecure bool) error {
@@ -60,4 +71,20 @@ func helmRegistryLogout(registry string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func parseHelmPushDigest(output string) (string, error) {
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "Digest:") {
+			digest := strings.TrimSpace(strings.TrimPrefix(trimmed, "Digest:"))
+			if digest == "" {
+				break
+			}
+			return digest, nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to parse digest from helm push output")
 }

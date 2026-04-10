@@ -44,6 +44,10 @@ func resolvePublishTags(version string, semver bool, push bool, multiTag bool) (
 	return dedupeStrings(tags), nil, nil
 }
 
+func ResolvePublishTags(version string, semver bool, push bool, multiTag bool) ([]string, []string, error) {
+	return resolvePublishTags(version, semver, push, multiTag)
+}
+
 func parseSemverForTags(version string) (int, int, bool, error) {
 	if strings.Contains(version, "+") {
 		return 0, 0, false, fmt.Errorf("OCI tag does not support '+': %s", version)

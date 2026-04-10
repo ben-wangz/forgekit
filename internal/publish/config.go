@@ -166,6 +166,7 @@ type ChartConfig struct {
 	ChartDir                     string
 	Push                         bool
 	Semver                       bool
+	MultiTag                     bool
 	ChartRegistry                string
 	ChartRegistryHost            string
 	RegistryPlainHTTP            bool
@@ -218,10 +219,20 @@ func loadChartConfig(args []string, projectRoot string) (*ChartConfig, error) {
 			cfg.Push = true
 		case "--semver":
 			cfg.Semver = true
+		case "--multi-tag":
+			cfg.MultiTag = true
 		default:
 			return nil, fmt.Errorf("unknown option: %s", args[i])
 		}
 
+	}
+
+	if cfg.MultiTag && !cfg.Semver {
+		return nil, fmt.Errorf("--multi-tag requires --semver")
+	}
+
+	if cfg.MultiTag && !cfg.Push {
+		return nil, fmt.Errorf("--multi-tag requires --push")
 	}
 
 	if cfg.ChartDir == "" {

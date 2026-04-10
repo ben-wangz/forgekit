@@ -82,6 +82,16 @@ CHART_REGISTRY_PASSWORD="$GITHUB_TOKEN" \
   --chart-dir operator/chart \
   --push \
   --semver
+
+# 如需 chart 语义化版本多标签发布（latest/major/major.minor/full）
+CHART_REGISTRY="ghcr.io/acme/demo-charts" \
+CHART_REGISTRY_USERNAME="$GITHUB_ACTOR" \
+CHART_REGISTRY_PASSWORD="$GITHUB_TOKEN" \
+/opt/forgekit/bin/forgekit --project-root "$REPO_ROOT" publish chart build \
+  --chart-dir operator/chart \
+  --push \
+  --semver \
+  --multi-tag
 ```
 
 说明：`publish` 默认发布 git-version；仅在需要 semver 发布时传 `--semver`。`--multi-tag` 仅支持 `--semver --push`。

@@ -138,13 +138,16 @@ forgekit publish chart build --chart-dir operator/chart --push
 
 # 使用语义化版本发布 chart（不带 commit，要求仓库 clean）
 forgekit publish chart build --chart-dir operator/chart --push --semver
+
+# 使用语义化版本多标签发布 chart（latest, major, major.minor, full）
+forgekit publish chart build --chart-dir operator/chart --push --semver --multi-tag
 ```
 
 `publish` 默认使用 git-version（带 commit，dirty 时可能带 `-dirty`）；传 `--semver` 则改为 semver 版本（不带 commit）。
 当启用 `--semver` 且仓库 dirty 时，命令会报错退出。
 
 `--multi-tag` 仅支持与 `--semver --push` 一起使用；不支持自定义 `--tag` 参数。
-当 semver 为 `0.x.y` 或 prerelease（如 `1.2.3-alpha.1`）时，`--multi-tag` 会降级为单 tag 并输出 warning。
+当 semver 为 `0.x.y` 或 prerelease（如 `1.2.3-alpha.1`）时，`--multi-tag` 会降级为单 tag 并输出 warning（container/chart 一致）。
 当 semver 含 `+` build metadata（如 `1.2.3+build.1`）时，命令会报错退出（OCI tag 不支持 `+`）。
 
 ## 配置与环境变量

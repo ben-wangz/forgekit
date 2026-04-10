@@ -97,6 +97,7 @@ func printUsage() {
 	fmt.Println("  --chart-dir <path>      Chart directory path (required)")
 	fmt.Println("  --push                  Push chart to registry")
 	fmt.Println("  --semver                Publish semver chart version (requires clean git)")
+	fmt.Println("  --multi-tag             Publish latest/major/minor/full tags (requires --semver --push)")
 	fmt.Println()
 	fmt.Println("Common options:")
 	fmt.Println("  --project-root <path>   Override project root")
