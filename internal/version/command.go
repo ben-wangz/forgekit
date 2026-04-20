@@ -62,8 +62,8 @@ func printUsage() {
 	fmt.Println("Usage: forgekit version <command> [args]")
 	fmt.Println()
 	fmt.Println("Commands:")
-	fmt.Println("  get [module] [--git]                 List/get semantic version or git-version")
-	fmt.Println("  bump <module> <major|minor|patch>    Bump module version")
+	fmt.Println("  get [target] [--git]                 List/get semantic version or git-version")
+	fmt.Println("  bump <target> <major|minor|patch>    Bump target version")
 	fmt.Println("  bump-chart <chart> <type> [--sync]   Bump chart version and optionally sync image versions")
 	fmt.Println("  bump-chart <type> [--sync]           Bump the only chart when there is exactly one chart")
 	fmt.Println("  sync [chart-name]                    Sync image versions to values.yaml and appVersion")
@@ -73,8 +73,10 @@ func printUsage() {
 	fmt.Println()
 	fmt.Println("Examples:")
 	fmt.Println("  forgekit version get")
+	fmt.Println("  forgekit version get forgekit")
 	fmt.Println("  forgekit version get catalog/ingest")
 	fmt.Println("  forgekit version get chart astro-data-operator --git")
+	fmt.Println("  forgekit version bump forgekit patch")
 	fmt.Println("  forgekit version bump catalog/ingest patch")
 	fmt.Println("  forgekit version bump-chart astro-data-operator minor --sync")
 	fmt.Println("  forgekit version sync")
@@ -120,6 +122,22 @@ func cmdGet(manager *Manager, args []string) error {
 }
 
 func printAllVersions(manager *Manager) error {
+	if len(manager.Binaries) > 0 {
+		fmt.Println("=== Binaries ===")
+		fmt.Println()
+
+		for _, binary := range manager.Binaries {
+			version, err := manager.ModuleVersion(binary.Name)
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("  %-30s version: %s\n", binary.Name, version)
+		}
+
+		fmt.Println()
+	}
+
 	fmt.Println("=== Helm Charts ===")
 	fmt.Println()
 

@@ -67,9 +67,21 @@ forgekit --project-root /path/to/project version get
 
 ### version
 
+`version-control.yaml` 可以为独立 binary 显式声明版本文件：
+
+```yaml
+binaries:
+  - name: forgekit
+    path: .
+    versionFile: VERSION
+```
+
 ```bash
 # 列出所有 chart/image 版本
 forgekit version get
+
+# 获取 binary 语义化版本
+forgekit version get forgekit
 
 # 获取模块语义化版本
 forgekit version get catalog/ingest
@@ -82,6 +94,9 @@ forgekit version get chart astro-data-operator --git
 
 # bump 模块版本
 forgekit version bump catalog/ingest patch
+
+# bump binary 版本
+forgekit version bump forgekit patch
 
 # bump chart 版本并同步 image 版本到 values/appVersion
 forgekit version bump-chart astro-data-operator minor --sync

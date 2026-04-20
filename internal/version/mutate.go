@@ -9,13 +9,13 @@ import (
 
 func cmdBump(manager *Manager, args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: forgekit version bump <module> <major|minor|patch>")
+		return fmt.Errorf("usage: forgekit version bump <target> <major|minor|patch>")
 	}
 
-	module := args[0]
+	target := args[0]
 	bumpType := args[1]
 
-	return bumpImageVersion(manager, module, bumpType)
+	return bumpImageVersion(manager, target, bumpType)
 }
 
 func cmdBumpChart(manager *Manager, args []string) error {
@@ -72,7 +72,7 @@ func bumpImageVersion(manager *Manager, module, bumpType string) error {
 	versionFile := manager.VersionFilePath(module)
 
 	if _, err := os.Stat(versionFile); err != nil {
-		return fmt.Errorf("VERSION file not found: %s", versionFile)
+		return fmt.Errorf("version file not found: %s", versionFile)
 	}
 
 	data, err := os.ReadFile(versionFile)

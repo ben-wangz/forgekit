@@ -15,13 +15,20 @@ type ImageConfig struct {
 	ValuesKey string `yaml:"valuesKey"`
 }
 
+type binaryControlConfig struct {
+	Name        string `yaml:"name"`
+	Path        string `yaml:"path"`
+	VersionFile string `yaml:"versionFile"`
+}
+
 type chartControlConfig struct {
 	Name string `yaml:"name"`
 	Path string `yaml:"path"`
 }
 
 type versionControlConfig struct {
-	Charts []chartControlConfig `yaml:"charts"`
+	Charts   []chartControlConfig  `yaml:"charts"`
+	Binaries []binaryControlConfig `yaml:"binaries"`
 }
 
 type ChartInfo struct {
@@ -31,9 +38,17 @@ type ChartInfo struct {
 	Images     []ImageConfig
 }
 
+type BinaryInfo struct {
+	Name        string
+	BasePath    string
+	VersionFile string
+	VersionPath string
+}
+
 type Manager struct {
 	ProjectRoot string
 	Charts      []ChartInfo
+	Binaries    []BinaryInfo
 }
 
 func NewManager(projectRoot string) (*Manager, error) {
@@ -44,6 +59,41 @@ func NewManager(projectRoot string) (*Manager, error) {
 	}
 
 	charts := make([]ChartInfo, 0, len(controlConfig.Charts))
+	binaries := make([]BinaryInfo, 0, len(controlConfig.Binaries))
+	binaryNames := make(map[string]struct{}, len(controlConfig.Binaries))
+
+	for _, binaryConfig := range controlConfig.Binaries {
+		name := strings.TrimSpace(binaryConfig.Name)
+		if name == "" {
+			return nil, fmt.Errorf("binary name is required")
+		}
+
+		binaryPath := strings.TrimSpace(binaryConfig.Path)
+		if binaryPath == "" {
+			return nil, fmt.Errorf("binary path is required for %s", name)
+		}
+
+		if _, exists := binaryNames[name]; exists {
+			return nil, fmt.Errorf("duplicate binary name: %s", name)
+		}
+		binaryNames[name] = struct{}{}
+
+		versionFile := strings.TrimSpace(binaryConfig.VersionFile)
+		if versionFile == "" {
+			versionFile = "VERSION"
+		}
+
+		basePath := filepath.Join(projectRoot, binaryPath)
+		versionPath := filepath.Join(basePath, versionFile)
+
+		binaries = append(binaries, BinaryInfo{
+			Name:        name,
+			BasePath:    basePath,
+			VersionFile: versionFile,
+			VersionPath: versionPath,
+		})
+	}
+
 	for _, chartConfig := range controlConfig.Charts {
 		chartPath := filepath.Join(projectRoot, chartConfig.Path, "Chart.yaml")
 		valuesPath := filepath.Join(projectRoot, chartConfig.Path, "values.yaml")
@@ -61,10 +111,16 @@ func NewManager(projectRoot string) (*Manager, error) {
 		})
 	}
 
-	return &Manager{ProjectRoot: projectRoot, Charts: charts}, nil
+	return &Manager{ProjectRoot: projectRoot, Charts: charts, Binaries: binaries}, nil
 }
 
 func (m *Manager) VersionFilePath(module string) string {
+	for _, binary := range m.Binaries {
+		if binary.Name == module {
+			return binary.VersionPath
+		}
+	}
+
 	for _, chart := range m.Charts {
 		for _, image := range chart.Images {
 			if image.Name == module {
@@ -102,7 +158,7 @@ func (m *Manager) ModuleVersion(module string) (string, error) {
 	versionFile := m.VersionFilePath(module)
 	data, err := os.ReadFile(versionFile)
 	if err != nil {
-		return "", fmt.Errorf("VERSION file not found: %s", versionFile)
+		return "", fmt.Errorf("version file not found: %s", versionFile)
 	}
 
 	return strings.TrimSpace(string(data)), nil

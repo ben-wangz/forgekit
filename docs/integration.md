@@ -48,6 +48,15 @@ mv "$BIN" /opt/forgekit/bin/forgekit
 /opt/forgekit/bin/forgekit --project-root /workspace/your-project publish chart build --chart-dir operator/chart
 ```
 
+如需管理独立 binary 版本，可在项目 `version-control.yaml` 声明：
+
+```yaml
+binaries:
+  - name: forgekit
+    path: .
+    versionFile: VERSION
+```
+
 也可以设置环境变量：
 
 ```bash
@@ -59,6 +68,7 @@ export FORGEKIT_PROJECT_ROOT=/workspace/your-project
 
 ```bash
 /opt/forgekit/bin/forgekit --project-root "$REPO_ROOT" version get
+/opt/forgekit/bin/forgekit --project-root "$REPO_ROOT" version get forgekit
 /opt/forgekit/bin/forgekit --project-root "$REPO_ROOT" publish container build \
   --container-dir catalog/ingest/container \
   --module catalog/ingest \
