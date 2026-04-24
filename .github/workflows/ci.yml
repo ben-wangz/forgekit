@@ -25,5 +25,11 @@ jobs:
       - name: Check formatting
         run: test -z "$(gofmt -l ./cmd ./internal)"
 
+      - name: Verify forgekit self version resolution
+        run: go run ./cmd/forgekit version get forgekit
+
+      - name: Run forgekit lint
+        run: go run ./cmd/forgekit lint
+
       - name: Build
         run: go build ./...

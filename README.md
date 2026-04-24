@@ -206,6 +206,45 @@ forgekit publish chart build --chart-dir operator/chart --push --semver --multi-
   - `forgekit version ...`
   - `forgekit publish ...`
 
+## forgekit 自身发布
+
+`forgekit` 自身采用 **VERSION 主导 + tag 锚点** 模式：
+
+- 版本真相来自仓库根目录 `VERSION`
+- `version-control.yaml` 声明了 `forgekit` binary 的版本文件映射
+- GitHub Release 仍由 `v*` tag 触发（仅作为发布锚点）
+- release workflow 会强校验 `VERSION` 与 tag 一致
+
+常用命令：
+
+```bash
+# 查看 forgekit 自身版本
+forgekit version get forgekit
+
+# bump 版本（示例：patch）
+forgekit version bump forgekit patch
+```
+
+标准发布步骤：
+
+```bash
+# 1) 校验仓库
+forgekit lint
+
+# 2) bump 版本（patch/minor/major 按需替换）
+forgekit version bump forgekit patch
+
+# 3) 提交版本变更
+git add VERSION
+git commit -m "Bump forgekit version"
+
+# 4) 创建并推送与 VERSION 对齐的 tag
+git tag "v$(forgekit version get forgekit)"
+git push origin main --tags
+```
+
+详细发布说明见 `docs/release.md`。
+
 ## 项目接入指南
 
 详细接入步骤见 `docs/integration.md`，包含：

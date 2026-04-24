@@ -1,0 +1,4 @@
+binaries:
+  - name: forgekit
+    path: .
+    versionFile: VERSION

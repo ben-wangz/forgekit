@@ -21,9 +21,23 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Read VERSION from repository
+        run: |
+          echo "FORGEKIT_VERSION=$(tr -d '[:space:]' < VERSION)" >> "$GITHUB_ENV"
+
+      - name: Validate tag matches VERSION
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          TAG_VERSION="${TAG_NAME#v}"
+          if [ "$FORGEKIT_VERSION" != "$TAG_VERSION" ]; then
+            echo "VERSION mismatch: VERSION=$FORGEKIT_VERSION, tag=$TAG_NAME"
+            exit 1
+          fi
+
       - name: Build multi-platform binaries
         env:
-          VERSION: ${{ github.ref_name }}
+          VERSION: ${{ env.FORGEKIT_VERSION }}
           COMMIT: ${{ github.sha }}
         run: |
           mkdir -p dist
