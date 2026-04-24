@@ -41,7 +41,7 @@ curl -fL -o "${BIN}" "https://files.m.daocloud.io/github.com/ben-wangz/forgekit/
 curl -fL -o checksums.txt "https://files.m.daocloud.io/github.com/ben-wangz/forgekit/releases/download/${VERSION}/checksums.txt"
 ```
 
-Windows 产物名为 `forgekit_windows_amd64.exe` / `forgekit_windows_arm64.exe`。
+当前仅提供 Linux 与 macOS 平台产物。
 
 ## CLI 结构
 

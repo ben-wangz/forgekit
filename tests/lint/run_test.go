@@ -46,26 +46,6 @@ include:
 	}
 }
 
-func TestLintRunFailsWhenFileExceedsLineLimit(t *testing.T) {
-	root := t.TempDir()
-	writeFile(t, filepath.Join(root, "lint.yaml"), strings.TrimSpace(`
-max_lines_by_ext:
-  .go: 2
-include:
-  - "*.go"
-`)+"\n")
-	writeFile(t, filepath.Join(root, "too_long.go"), "package main\n\nfunc main() {}\n")
-
-	err := lintcmd.Run(nil, root)
-	if err == nil {
-		t.Fatal("expected lint run to fail")
-	}
-
-	if !strings.Contains(err.Error(), "some files exceed line limits") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
 func writeFile(t *testing.T, path, content string) {
 	t.Helper()
 

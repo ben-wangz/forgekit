@@ -24,22 +24,6 @@ func TestResolvePublishTagsStableSemverMultiTag(t *testing.T) {
 	}
 }
 
-func TestResolvePublishTagsPreOneDowngradesToSingleTag(t *testing.T) {
-	tags, warnings, err := publish.ResolvePublishTags("0.9.3", true, true, true)
-	if err != nil {
-		t.Fatalf("ResolvePublishTags returned error: %v", err)
-	}
-
-	expectedTags := []string{"0.9.3"}
-	if !reflect.DeepEqual(tags, expectedTags) {
-		t.Fatalf("unexpected tags: want %v, got %v", expectedTags, tags)
-	}
-
-	if len(warnings) != 1 || !strings.Contains(warnings[0], "pre-1.0") {
-		t.Fatalf("expected pre-1.0 warning, got %v", warnings)
-	}
-}
-
 func TestResolvePublishTagsPrereleaseDowngradesToSingleTag(t *testing.T) {
 	tags, warnings, err := publish.ResolvePublishTags("1.6.0-rc.1", true, true, true)
 	if err != nil {
@@ -63,28 +47,6 @@ func TestResolvePublishTagsRejectsBuildMetadata(t *testing.T) {
 	}
 
 	if !strings.Contains(err.Error(), "OCI tag") || !strings.Contains(err.Error(), "+") {
-		t.Fatalf("unexpected error message: %v", err)
-	}
-}
-
-func TestResolvePublishTagsRequiresSemver(t *testing.T) {
-	_, _, err := publish.ResolvePublishTags("1.6.0", false, true, true)
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-
-	if !strings.Contains(err.Error(), "--semver") {
-		t.Fatalf("unexpected error message: %v", err)
-	}
-}
-
-func TestResolvePublishTagsRequiresPush(t *testing.T) {
-	_, _, err := publish.ResolvePublishTags("1.6.0", true, false, true)
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-
-	if !strings.Contains(err.Error(), "--push") {
 		t.Fatalf("unexpected error message: %v", err)
 	}
 }

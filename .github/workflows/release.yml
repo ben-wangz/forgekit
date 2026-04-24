@@ -46,18 +46,11 @@ jobs:
             "linux arm64"
             "darwin amd64"
             "darwin arm64"
-            "windows amd64"
-            "windows arm64"
           )
 
           for target in "${targets[@]}"; do
             IFS=' ' read -r goos goarch <<< "$target"
-            ext=""
-            if [ "$goos" = "windows" ]; then
-              ext=".exe"
-            fi
-
-            output="dist/forgekit_${goos}_${goarch}${ext}"
+            output="dist/forgekit_${goos}_${goarch}"
             echo "Building ${output}"
 
             CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" \
