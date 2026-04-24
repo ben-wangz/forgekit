@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	lintcmd "github.com/ben-wangz/forgekit/internal/lint"
 	"github.com/ben-wangz/forgekit/internal/publish"
 	versioncmd "github.com/ben-wangz/forgekit/internal/version"
 )
@@ -38,6 +39,8 @@ func run(args []string) error {
 	}
 
 	switch rest[0] {
+	case "lint":
+		return lintcmd.Run(rest[1:], projectRoot)
 	case "version":
 		return versioncmd.Run(rest[1:], projectRoot)
 	case "publish":
@@ -91,10 +94,13 @@ func printUsage() {
 	fmt.Println("  --help, -h              Print help")
 	fmt.Println()
 	fmt.Println("Commands:")
+	fmt.Println("  lint                    Code style checks")
 	fmt.Println("  version                 Version management")
 	fmt.Println("  publish                 Container/chart publishing")
 	fmt.Println()
 	fmt.Println("Examples:")
+	fmt.Println("  forgekit lint")
+	fmt.Println("  forgekit lint --config lint.yaml")
 	fmt.Println("  forgekit version get")
 	fmt.Println("  forgekit version get catalog/ingest --git")
 	fmt.Println("  forgekit publish container build --container-dir catalog/ingest/container --module catalog/ingest")

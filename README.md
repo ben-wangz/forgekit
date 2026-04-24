@@ -1,6 +1,6 @@
 # forgekit
 
-`forgekit` 是一个独立维护的统一 CLI，当前聚合了 `version` 与 `publish` 能力。
+`forgekit` 是一个独立维护的统一 CLI，当前聚合了 `lint`、`version` 与 `publish` 能力。
 
 ## 安装
 
@@ -47,6 +47,7 @@ Windows 产物名为 `forgekit_windows_amd64.exe` / `forgekit_windows_arm64.exe`
 
 ```text
 forgekit
+├── lint
 ├── version
 │   ├── get
 │   ├── bump
@@ -103,6 +104,18 @@ forgekit version bump-chart astro-data-operator minor --sync
 
 # 同步所有 chart 的 image 版本
 forgekit version sync
+```
+
+### lint
+
+默认从当前目录向上发现 git 根目录，并读取 `<git-root>/lint.yaml`。
+
+```bash
+# 使用 <git-root>/lint.yaml
+forgekit lint
+
+# 显式指定配置文件（相对路径按 git 根目录解析）
+forgekit lint --config lint.yaml
 ```
 
 ### publish
@@ -189,6 +202,7 @@ forgekit publish chart build --chart-dir operator/chart --push --semver --multi-
 - 统一二进制：`forgekit`
 - `publish` 直接复用同仓库内 `internal/version` 逻辑
 - 命令结构：
+  - `forgekit lint ...`
   - `forgekit version ...`
   - `forgekit publish ...`
 

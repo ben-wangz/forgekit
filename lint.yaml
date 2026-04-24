@@ -1,0 +1,21 @@
+include:
+  - "*.go"
+
+exclude:
+  - "**/vendor/**"
+  - "**/dist/**"
+  - "**/build/**"
+
+max_lines_by_ext:
+  .go: 250
+
+commands:
+  - name: "Go formatting check"
+    cmd: "sh"
+    args:
+      - "-c"
+      - "test -z \"$(gofmt -l .)\""
+
+  - name: "Go unit tests"
+    cmd: "go"
+    args: ["test", "./..."]
