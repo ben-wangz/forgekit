@@ -79,6 +79,10 @@ forgekit lint
 2. 在本地与 CI 验证 `forgekit lint` 行为。
 3. 最后更新 `README` 的 lint 章节与仓库自用说明。
 
+## 存量超限治理
+
+行数超限文件的重构方案已单独整理到 `todo/lint-refactor-plan.md`，后续按该方案分批实施并回归。
+
 ## 验收标准
 
 - 根目录存在可用 `lint.yaml`。

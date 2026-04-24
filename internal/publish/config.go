@@ -3,13 +3,10 @@ package publish
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/ben-wangz/forgekit/internal/project"
 )
-
-var labelKeyPattern = regexp.MustCompile(`^[a-z0-9]+([._-][a-z0-9]+)*(\/[a-z0-9]+([._-][a-z0-9]+)*)*$`)
 
 type ContainerConfig struct {
 	ContainerDir      string
@@ -122,44 +119,9 @@ func loadContainerConfig(args []string, projectRoot string) (*ContainerConfig, e
 		cfg.Context = project.ResolvePath(projectRoot, cfg.Context)
 	}
 
-	for _, env := range os.Environ() {
-		if strings.HasPrefix(env, "BUILD_ARG_") {
-			parts := strings.SplitN(env, "=", 2)
-			if len(parts) == 2 {
-				argName := strings.TrimPrefix(parts[0], "BUILD_ARG_")
-				cfg.BuildArgs[argName] = parts[1]
-			}
-		}
-	}
+	collectBuildArgs(cfg.BuildArgs)
 
 	return cfg, nil
-}
-
-func (c *ContainerConfig) addLabel(raw string) error {
-	parts := strings.SplitN(raw, "=", 2)
-	if len(parts) != 2 {
-		return fmt.Errorf("invalid --label value %q, expected key=value", raw)
-	}
-
-	key := strings.TrimSpace(parts[0])
-	if key == "" {
-		return fmt.Errorf("invalid --label value %q, key cannot be empty", raw)
-	}
-	if !labelKeyPattern.MatchString(key) {
-		return fmt.Errorf("invalid --label key %q", key)
-	}
-
-	value := parts[1]
-	if strings.Contains(value, "\n") || strings.Contains(value, "\r") {
-		return fmt.Errorf("invalid --label value for key %q, newlines are not allowed", key)
-	}
-
-	if _, exists := c.Labels[key]; !exists {
-		c.LabelOrder = append(c.LabelOrder, key)
-	}
-	c.Labels[key] = value
-
-	return nil
 }
 
 type ChartConfig struct {
@@ -241,99 +203,4 @@ func loadChartConfig(args []string, projectRoot string) (*ChartConfig, error) {
 
 	cfg.ChartDir = project.ResolvePath(projectRoot, cfg.ChartDir)
 	return cfg, nil
-}
-
-func resolveChartRegistry() (string, bool, error) {
-	chartRegistry := strings.TrimSpace(os.Getenv("CHART_REGISTRY"))
-	if chartRegistry != "" {
-		if strings.HasPrefix(chartRegistry, "oci://") {
-			return "", false, fmt.Errorf("CHART_REGISTRY must not include oci:// prefix")
-		}
-
-		normalized := normalizeRegistry(chartRegistry)
-		if normalized == "" {
-			return "", false, fmt.Errorf("CHART_REGISTRY is invalid")
-		}
-
-		return normalized, false, nil
-	}
-
-	containerRegistryEnv := strings.TrimSpace(os.Getenv("CONTAINER_REGISTRY"))
-	if containerRegistryEnv != "" {
-		containerRegistry := normalizeRegistry(containerRegistryEnv)
-		return appendChartsSuffix(containerRegistry), true, nil
-	}
-
-	autoDetected := normalizeRegistry(getContainerRegistry())
-	return appendChartsSuffix(autoDetected), true, nil
-}
-
-func resolveChartCredentials() (string, string, bool, error) {
-	chartUser := strings.TrimSpace(os.Getenv("CHART_REGISTRY_USERNAME"))
-	chartPass := strings.TrimSpace(os.Getenv("CHART_REGISTRY_PASSWORD"))
-
-	if (chartUser == "") != (chartPass == "") {
-		return "", "", false, fmt.Errorf("CHART_REGISTRY_USERNAME and CHART_REGISTRY_PASSWORD must be set together")
-	}
-
-	if chartUser != "" {
-		return chartUser, chartPass, false, nil
-	}
-
-	containerUser := strings.TrimSpace(os.Getenv("CONTAINER_REGISTRY_USERNAME"))
-	containerPass := strings.TrimSpace(os.Getenv("CONTAINER_REGISTRY_PASSWORD"))
-
-	if containerUser == "" && containerPass == "" {
-		return "", "", false, nil
-	}
-
-	if (containerUser == "") != (containerPass == "") {
-		return "", "", false, fmt.Errorf("CONTAINER_REGISTRY_USERNAME and CONTAINER_REGISTRY_PASSWORD must be set together when used as chart credential fallback")
-	}
-
-	return containerUser, containerPass, true, nil
-}
-
-func getContainerRegistry() string {
-	if registry := normalizeRegistry(strings.TrimSpace(os.Getenv("CONTAINER_REGISTRY"))); registry != "" {
-		return registry
-	}
-
-	registry, err := getK3sRegistryAddress()
-	if err == nil {
-		return normalizeRegistry(registry)
-	}
-
-	return "localhost:5000"
-}
-
-func defaultImageNameFromModule(module string) string {
-	trimmed := strings.Trim(module, "/")
-	if trimmed == "" {
-		return ""
-	}
-
-	normalized := strings.ReplaceAll(trimmed, "/", "-")
-	return "astro-data/" + normalized
-}
-
-func appendChartsSuffix(registry string) string {
-	trimmed := normalizeRegistry(registry)
-	if strings.HasSuffix(trimmed, "/charts") {
-		return trimmed
-	}
-	return trimmed + "/charts"
-}
-
-func normalizeRegistry(registry string) string {
-	trimmed := strings.TrimSpace(registry)
-	for strings.HasSuffix(trimmed, "/") {
-		trimmed = strings.TrimSuffix(trimmed, "/")
-	}
-	return trimmed
-}
-
-func registryHost(registry string) string {
-	parts := strings.SplitN(registry, "/", 2)
-	return parts[0]
 }
