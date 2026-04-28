@@ -7,6 +7,7 @@ import (
 
 	lintcmd "github.com/ben-wangz/forgekit/internal/lint"
 	"github.com/ben-wangz/forgekit/internal/publish"
+	secretcmd "github.com/ben-wangz/forgekit/internal/secret"
 	versioncmd "github.com/ben-wangz/forgekit/internal/version"
 )
 
@@ -45,6 +46,8 @@ func run(args []string) error {
 		return versioncmd.Run(rest[1:], projectRoot)
 	case "publish":
 		return publish.Run(rest[1:], projectRoot)
+	case "secret":
+		return secretcmd.Run(rest[1:])
 	case "help":
 		printUsage()
 		return nil
@@ -97,6 +100,7 @@ func printUsage() {
 	fmt.Println("  lint                    Code style checks")
 	fmt.Println("  version                 Version management")
 	fmt.Println("  publish                 Container/chart publishing")
+	fmt.Println("  secret                  Secret file encryption/decryption")
 	fmt.Println()
 	fmt.Println("Examples:")
 	fmt.Println("  forgekit lint")
@@ -105,4 +109,6 @@ func printUsage() {
 	fmt.Println("  forgekit version get catalog/ingest --git")
 	fmt.Println("  forgekit publish container build --container-dir catalog/ingest/container --module catalog/ingest")
 	fmt.Println("  forgekit publish chart build --chart-dir operator/chart --push")
+	fmt.Println("  forgekit secret encrypt note.secret.md")
+	fmt.Println("  forgekit secret decrypt note.secret.md.enc")
 }
